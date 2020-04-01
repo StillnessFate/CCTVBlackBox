@@ -44,17 +44,20 @@ const int sobelMask[2][3][3] = {
 
 class CMonitor {
 private:
-	pair<int, int> point;//X, Y
+	HWND hWnd;
+	char screenName[128];
+	vector<int>* prevCorner = new vector<int>;
+	clock_t alarmClock, saveClock;
+//	pair<int, int> point;//X, Y
 	pair<int, int> size;//Width, Height
 	pair<int, int> resize;//Width, Height
 public:
-	CMonitor();
+	CMonitor(char *name);
 	pair<int, int> getPoint();
 	pair<int, int> getSize();
-	pair<int, int> getResize();
+	char* getScreenName();
+	bool imageProcessing(const WCHAR* fileNameWC);
 };
-
-void CALLBACK screenCapture(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
-bool imageProcessing(const WCHAR* fileNameWC, bool maximum, bool minimum);
+void CALLBACK screenCapture(UINT timerId, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD w2);
 int GetEncoderClsid(const WCHAR* format, CLSID* pClsid);
 void ConvertCtoWC(const char* str, WCHAR* wstr);

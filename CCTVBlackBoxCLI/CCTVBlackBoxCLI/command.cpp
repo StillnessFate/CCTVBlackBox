@@ -63,12 +63,12 @@ unsigned int WINAPI commandIO(void *args) {
 			case CMD_SETDEBUG: {
 				int debug;
 				sscanf(&input[1], "%d", &debug);
-				setting->setDebug(debug);
+				setting->setDebug(debug?true:false);
 			}break;
 			case CMD_SETALARM: {
 				int alarm;
 				sscanf(&input[1], "%d", &alarm);
-				setting->setAlarm(alarm);
+				setting->setAlarm(alarm?true:false);
 			}break;
 			case CMD_QUIT:
 				commandIOAct = false;

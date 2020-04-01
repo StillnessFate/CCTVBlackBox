@@ -20,8 +20,6 @@ CSetting::CSetting() {
 	readSetting("threshold", &threshold, DEFAULT_THRESHOLD);
 	readSetting("matching", &matching, DEFAULT_MATCHING);
 
-	saveClock = alarmClock = clock();
-
 	alarm = TRUE;
 	debug = FALSE;
 }
@@ -34,8 +32,9 @@ void CSetting::setSaveInterval(pair<int, int> saveinterval) {
 void CSetting::setTimerInterval(int timerinterval) {
 	timerInterval = timerinterval;
 	writeSetting("timerInterval", timerInterval);
-	KillTimer(NULL, getTimerId());
-	setTimerId(SetTimer(NULL, 0, getTimerInterval(), (TIMERPROC)&screenCapture));
+	extern MMRESULT m_idEvent;
+	timeKillEvent(m_idEvent);
+	m_idEvent = timeSetEvent(getTimerInterval(), 0, (LPTIMECALLBACK)screenCapture, NULL, TIME_PERIODIC);
 }
 
 void CSetting::setAlarmInterval(int alarminterval) {
@@ -65,14 +64,6 @@ void CSetting::setMatching(float rate) {
 
 void CSetting::setTimerId(UINT_PTR id) {
 	timerId = id;
-}
-
-void CSetting::setAlarmClock(clock_t clk) {
-	alarmClock = clk;
-}
-
-void CSetting::setsSaveClock(clock_t clk) {
-	saveClock = clk;
 }
 
 void CSetting::setDebug(bool chk) {
@@ -112,14 +103,6 @@ float CSetting::getMatching() {
 
 UINT_PTR CSetting::getTimerId() {
 	return timerId;
-}
-
-clock_t CSetting::getAlarmClock() {
-	return alarmClock;
-}
-
-clock_t CSetting::getSaveClock() {
-	return saveClock;
 }
 
 char* CSetting::getMainPath() {
@@ -206,8 +189,12 @@ void deleteDirectory(char* RootDir) {
 		sprintf_s(filePath, "%s", wfd.cFileName);
 		if (filePath[0] != '.') {
 			sprintf_s(filePath, "%s\\%s", RootDir, wfd.cFileName);
-			DeleteFileA(filePath);
+			if (wfd.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY)
+				deleteDirectory(filePath);
+			else
+				DeleteFileA(filePath);
 		}
 	} while (FindNextFileA(hFind, &wfd));
+	FindClose(hFind);
 	rmdir(RootDir);
 }

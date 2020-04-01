@@ -3,44 +3,54 @@
 
 using namespace std;
 
-CMonitor::CMonitor() {
-	point = { GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN) };
-	size = { GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN) };
-	resize = { size.first / 2, size.second / 2 };
+CMonitor::CMonitor(char *name) {
+	POINT cursorPos;
+	GetCursorPos(&cursorPos);
+	hWnd = WindowFromPoint(cursorPos);
+	strcpy(screenName, name);
+	alarmClock = saveClock = clock();
 }
 
 pair<int, int> CMonitor::getPoint() {
+	RECT rect[2];
+	GetWindowRect(hWnd, &rect[0]);
+	GetClientRect(hWnd, &rect[1]);
+	pair<int, int> point = { rect[0].right - rect[1].right, rect[0].bottom - rect[1].bottom };
 	return point;
 }
 
 pair<int, int> CMonitor::getSize() {
+	RECT rect[2];
+	GetWindowRect(hWnd, &rect[0]);
+	GetClientRect(hWnd, &rect[1]);
+	size = { rect[1].right, rect[1].bottom };
+	resize = { size.first / 2 + size.first % 2, size.second / 2 + size.second % 2};
 	return size;
 }
 
-pair<int, int> CMonitor::getResize() {
-	return resize;
+char* CMonitor::getScreenName() {
+	return screenName;
 }
 
-CMonitor monitor;
+vector<CMonitor> monitor;
 CSetting* setting;
 
-void CALLBACK screenCapture(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
+void CALLBACK screenCapture(UINT timerId, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD w2) {
 	char fileName[16];
 	char filePath[256];
 	WCHAR filePathWC[256];
 	char folderName[16];
-	char folderPath[256];
+	char imgFolderPath[256];
 	time_t currTime;
 	struct tm* currTm;
 	clock_t start = clock();
-
 	time(&currTime);
-	currTm = localtime (&currTime);
+	currTm = localtime(&currTime);
 	strftime(folderName, sizeof(folderName), "%y%m%d", currTm);
-	sprintf(folderPath, "%s\\%s", setting->getImagePath(), folderName);
+	sprintf(imgFolderPath, "%s\\%s", setting->getImagePath(), folderName);
 
-	if (!dirExists(folderPath)) {
-		mkdir(folderPath);
+	if (!dirExists(imgFolderPath)) {
+		mkdir(imgFolderPath);
 		char deleteFolderName[256];
 		char deleteFolderPath[256];
 		time_t deleteTime = currTime - (time_t)86400 * setting->getDeleteInterval();
@@ -51,12 +61,17 @@ void CALLBACK screenCapture(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 		deleteDirectory(deleteFolderPath);
 	}
 
-	strftime(fileName, sizeof(fileName), "%H-%M-%S", currTm);
-	sprintf(filePath, "%s\\%s.jpeg", folderPath, fileName);
-	ConvertCtoWC(filePath, filePathWC);
+	for (int i = 0; i < monitor.size(); i++) {
+		strftime(fileName, sizeof(fileName), "%H-%M-%S", currTm);
+		char screenFolderPath[256];
+		sprintf(screenFolderPath, "%s\\%s", imgFolderPath, monitor[i].getScreenName());
+		if (!dirExists(screenFolderPath))
+			mkdir(screenFolderPath);
+		sprintf(filePath, "%s\\%s.jpeg", screenFolderPath, fileName);
+		ConvertCtoWC(filePath, filePathWC);
 
-	imageProcessing(filePathWC, true, true);
-
+		monitor[i].imageProcessing(filePathWC);
+	}
 
 	clock_t term = clock() - start;
 	if (term > setting->getTimerInterval()) {
@@ -64,16 +79,15 @@ void CALLBACK screenCapture(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 	}
 }
 
-vector<int>* prevCorner = new vector<int>;
-
-bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
+bool CMonitor::imageProcessing(const WCHAR* filePathWC) {
 	clock_t nowClock = clock();
-	int Width = monitor.getSize().first, Height = monitor.getSize().second;
-	int resizeWidth = monitor.getResize().first, resizeHeight = monitor.getResize().second;
+	getSize();
+	int Width = size.first, Height = size.second;
+	int resizeWidth = resize.first, resizeHeight = resize.second;
 
-	BYTE* imgArr, * grayArr;
-	pair<float, float>* edgeArr;//X, Y
-	float* gdx2, * gdy2, * gdxy, * R;
+	BYTE *imgArr, *grayArr;
+	pair<float, float> *edgeArr;//X, Y
+	float *gdx2, *gdy2, *gdxy, *R;
 
 	grayArr = new BYTE[(size_t)resizeWidth * resizeHeight];
 	imgArr = new BYTE[(size_t)resizeWidth * resizeHeight];
@@ -89,13 +103,14 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
+	MSG msg;
 	HDC scrdc, memdc;
 	HBITMAP membit;
-	scrdc = GetDC(NULL);
+	scrdc = GetDC(hWnd);
 	memdc = CreateCompatibleDC(scrdc);
 	membit = CreateCompatibleBitmap(scrdc, Width, Height);
 	SelectObject(memdc, membit);
-	BitBlt(memdc, 0, 0, Width, Height, scrdc, monitor.getPoint().first, monitor.getPoint().second, SRCCOPY);
+	BitBlt(memdc, 0, 0, Width, Height, scrdc, 0, 0, SRCCOPY);
 
 	Bitmap* origin = new Bitmap(membit, NULL);
 	Bitmap* change = new Bitmap(resizeWidth, resizeHeight, PixelFormat32bppARGB);
@@ -177,7 +192,9 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 					nowCorner->push_back(idx);
 				}
 			}
-			if (setting->getDebug()) pixels[idx] = { grayArr[idx], grayArr[idx], grayArr[idx], 0 };
+			if (setting->getDebug()) {
+				pixels[idx] = { grayArr[idx], grayArr[idx], grayArr[idx], 0 };
+			}
 		}
 	}
 
@@ -188,17 +205,6 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 		else return false;
 			});
 
-	if (setting->getDebug()) {
-		for (int i = 0; i < maxSize; i++) {
-			int idx = nowCorner->at(i);
-			for (int y = -2; y <= 2; y++) {
-				for (int x = -2; x <= 2; x++) {
-					pixels[idx + y * resizeWidth + x] = { 0, 0, grayArr[idx + y * resizeWidth + x], 0 };
-				}
-			}
-		}
-	}
-
 	pair<int, pair<int, int>>* cost;
 	cost = new pair<int, pair<int, int>>[maxSize * 2 + 2];//cost, <root, idx>
 	bool* inQ;
@@ -207,6 +213,17 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 	edge = new vector<pair<int, int>>[maxSize * 2 + 2] ;//dest, cost
 	int nowSize = min(maxSize, nowCorner->size());
 	int prevSize = min(maxSize, prevCorner->size());
+
+	if (setting->getDebug()) {
+		for (int i = 0; i < nowSize; i++) {
+			int idx = nowCorner->at(i);
+			for (int y = -2; y <= 2; y++) {
+				for (int x = -2; x <= 2; x++) {
+					pixels[idx + y * resizeWidth + x] = { 0, 0, grayArr[idx + y * resizeWidth + x], 0 };
+				}
+			}
+		}
+	}
 
 	for (int i = 0; i < nowSize; i++)
 		edge[startIdx].push_back({ i, 0 });
@@ -253,13 +270,6 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 			edge[cost[i].second.first].pop_back();
 		}
 	}
-	delete[] cost;
-	delete[] inQ;
-	delete[] edge;
-
-	if (prevCorner != NULL)
-		delete prevCorner;
-	prevCorner = nowCorner;
 
 	change->UnlockBits(bitmapData);
 
@@ -267,19 +277,19 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 	GetEncoderClsid(L"image/jpeg", &clsid);
 
 	if (edge[endIdx].size() / (float)prevSize < setting->getMatching()) {
-		if ((nowClock - setting->getAlarmClock() > setting->getAlarmInterval() * 1000) && setting->getAlarm()) {
-			setting->setAlarmClock(nowClock);
+		if ((nowClock - alarmClock > setting->getAlarmInterval() * 1000) && setting->getAlarm()) {
+			alarmClock = nowClock;
 		}
-		if (nowClock - setting->getSaveClock() > setting->getSaveInterval().first * 1000) {
+		if (nowClock - saveClock > setting->getSaveInterval().first * 1000) {
 			WCHAR eventFilePathWC[256];
 			swprintf(eventFilePathWC, L"%ls(event).jpeg", wstring(filePathWC).substr(0, lstrlenW(filePathWC) - 5).c_str());
 			origin->Save(eventFilePathWC, &clsid, NULL);
-			setting->setsSaveClock(nowClock);
+			saveClock = nowClock;
 		}
 	}
-	else if (nowClock - setting->getSaveClock() > setting->getSaveInterval().second * 1000) {
+	else if (nowClock - saveClock > setting->getSaveInterval().second * 1000) {
 		origin->Save(filePathWC, &clsid, NULL);
-		setting->setsSaveClock(nowClock);
+		saveClock = nowClock;
 	}
 
 	if (setting->getDebug()) {
@@ -287,6 +297,13 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 		swprintf(debugFilePathWC, L"%ls(debug).jpeg", wstring(filePathWC).substr(0, lstrlenW(filePathWC) - 5).c_str());
 		change->Save(debugFilePathWC, &clsid, NULL);
 	}
+
+	delete[]cost;
+	delete[]inQ;
+	delete[]edge;
+
+	delete prevCorner;
+	prevCorner = nowCorner;
 
 	delete bitmapData;
 	delete origin;

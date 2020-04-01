@@ -28,7 +28,6 @@ private:
 	char imagePath[256];
 	char settingPath[256];
 	UINT_PTR timerId;
-	clock_t alarmClock, saveClock;
 	bool debug;
 	bool alarm;
 public:
@@ -41,8 +40,6 @@ public:
 	void setCornerSize(int size);
 	void setThreshold(float th);
 	void setMatching(float rate);
-	void setAlarmClock(clock_t clk);
-	void setsSaveClock(clock_t clk);
 	void setDebug(bool chk);
 	void setAlarm(bool chk);
 	pair<int, int>getSaveInterval();
@@ -53,8 +50,6 @@ public:
 	float getThreshold();
 	float getMatching();
 	UINT_PTR getTimerId();
-	clock_t getAlarmClock();
-	clock_t getSaveClock();
 	char* getMainPath();
 	char* getImagePath();
 	bool getDebug();
