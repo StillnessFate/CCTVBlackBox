@@ -253,9 +253,9 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 			edge[cost[i].second.first].pop_back();
 		}
 	}
-	delete[] cost;
-	delete[] inQ;
-	delete[] edge;
+	//delete[] cost;
+	//delete[] inQ;
+	//delete[] edge;
 
 	if (prevCorner != NULL)
 		delete prevCorner;
@@ -268,6 +268,8 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 
 	if (edge[endIdx].size() / (float)prevSize < setting->getMatching()) {
 		if ((nowClock - setting->getAlarmClock() > setting->getAlarmInterval() * 1000) && setting->getAlarm()) {
+			printf("%s\n", "CHANGE_DETECTION");
+			fflush(stdout);
 			setting->setAlarmClock(nowClock);
 		}
 		if (nowClock - setting->getSaveClock() > setting->getSaveInterval().first * 1000) {
@@ -287,6 +289,11 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 		swprintf(debugFilePathWC, L"%ls(debug).jpeg", wstring(filePathWC).substr(0, lstrlenW(filePathWC) - 5).c_str());
 		change->Save(debugFilePathWC, &clsid, NULL);
 	}
+
+
+	delete[] cost;
+	delete[] inQ;
+	delete[] edge;
 
 	delete bitmapData;
 	delete origin;

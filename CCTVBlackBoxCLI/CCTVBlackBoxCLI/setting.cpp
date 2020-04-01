@@ -34,8 +34,15 @@ void CSetting::setSaveInterval(pair<int, int> saveinterval) {
 void CSetting::setTimerInterval(int timerinterval) {
 	timerInterval = timerinterval;
 	writeSetting("timerInterval", timerInterval);
-	KillTimer(NULL, getTimerId());
-	setTimerId(SetTimer(NULL, 0, getTimerInterval(), (TIMERPROC)&screenCapture));
+
+	MMRESULT timerId = getTimerId();
+	if (timerId != 0) {
+		timeKillEvent(timerId);
+	}
+	timerId = timeSetEvent(getTimerInterval(), 10, (LPTIMECALLBACK)&screenCapture, 0, TIME_PERIODIC);
+	if (timerId != 0) {
+		setTimerId(timerId);
+	}
 }
 
 void CSetting::setAlarmInterval(int alarminterval) {
