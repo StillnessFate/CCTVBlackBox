@@ -278,7 +278,9 @@ bool CMonitor::imageProcessing(const WCHAR* filePathWC) {
 
 	if (edge[endIdx].size() / (float)prevSize < setting->getMatching()) {
 		if ((nowClock - alarmClock > setting->getAlarmInterval() * 1000) && setting->getAlarm()) {
-			alarmClock = nowClock;
+			printf("%s\n", "CHANGE_DETECTION");
+			fflush(stdout);
+			setting->setAlarmClock(nowClock);
 		}
 		if (nowClock - saveClock > setting->getSaveInterval().first * 1000) {
 			WCHAR eventFilePathWC[256];

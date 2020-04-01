@@ -13,6 +13,7 @@
 #define CMD_SETDEBUG 0x47 //G %d(bool)
 #define CMD_SETALARM 0x48 //H %d(bool)
 #define CMD_SETDELETEINTERVAL 0x49 //I %d
+#define CMD_SETSETTINGS 0x53 //S
 #define CMD_QUIT 0x5A//Z
 
 #define CMD_GETTIMERINTERVAL 0x61 //a	%d
@@ -24,5 +25,6 @@
 #define CMD_GETDEBUG 0x67 //g			true:1 false:0
 #define CMD_GETALARM 0x68 //h			true:1 false:0
 #define CMD_GETDELETEINTERVAL 0x69 //i	%d
+#define CMD_GETSETTINGS 0x73 //s
 
 unsigned int WINAPI commandIO(void* args);

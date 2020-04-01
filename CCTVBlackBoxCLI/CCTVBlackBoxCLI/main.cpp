@@ -24,16 +24,26 @@ int main(int argc, char* argv[]) {
 
 	HANDLE hThread;
 	DWORD threadID;
-	
+	HANDLE hMutex;
+
+	hMutex = CreateMutex(NULL, FALSE, L"CCTVBlackBox_CLI");
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		MessageBox(NULL, L"�̹� �ٸ� �ν��Ͻ��� �������Դϴ�.", L"���� ����", MB_OK);
+		return 0;
+	}
+
 	hThread = (HANDLE)_beginthreadex(NULL, 0, commandIO, NULL, 0, (unsigned*)&threadID);
 
-	m_idEvent = timeSetEvent(setting->getTimerInterval(), 0, (LPTIMECALLBACK)screenCapture, NULL, TIME_PERIODIC);
+	m_idEvent = timeSetEvent(setting->getTimerInterval(), 10, (LPTIMECALLBACK)&screenCapture, 0, TIME_PERIODIC); //��Ƽ�̵�� Ÿ�̸�
+	if (m_idEvent != 0) {
+		setting->setTimerId(m_idEvent);
+	}
 
-	extern bool commandIOAct;
-	MSG msg;
-	while (commandIOAct);
+	hMutex = OpenMutex(SYNCHRONIZE, TRUE, L"CCTVBlackBox");
+	if (hMutex != NULL)
+		WaitForSingleObject(hMutex, INFINITE);
 
-	timeKillEvent(m_idEvent);
-
+	exit(0);
+	
 	return 0;
 }
