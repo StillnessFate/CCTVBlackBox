@@ -21,6 +21,7 @@ using MessageBox = System.Windows.Forms.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
 using System.Threading;
 using System.Windows.Threading;
+using System.IO;
 using Notifications.Wpf;
 using System.Media;
 
@@ -35,6 +36,7 @@ namespace CCTV_BlackBox_GUI
         Process baseProcess = new Process();
         SoundPlayer alarmPlayer = new SoundPlayer(Properties.Resources.alarm);
         SoundPlayer errorPlayer = new SoundPlayer(Properties.Resources.error);
+        String basePath = @"C:\Program Files\CCTVBlackBox\";
         String imagePath = @"C:\Program Files\CCTVBlackBox\image";
         Mutex mutex;
         bool shutdownProcess = false;
@@ -67,9 +69,13 @@ namespace CCTV_BlackBox_GUI
 
         private bool InitBaseProcess()
         {
+            //if (!File.Exists(basePath))
+            //    Directory.CreateDirectory(basePath);
+            //String extractPath = basePath + "CCTVBlackBoxCLI.exe";
+            //File.WriteAllBytes(extractPath, Properties.Resources.CCTVBlackBoxCLI);
+
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "CCTVBlackBoxCLI.exe";
-            //startInfo.FileName = @"C:\Users\W21044\Documents\GitHub\CCTVBlackBox\CCTVBlackBoxCLI\Release\CCTVBlackBoxCLI.exe";
+            startInfo.FileName = "CCTVBlackBoxCLI.exe"; //extractPath
             startInfo.CreateNoWindow = true;
             startInfo.UseShellExecute = false;
             startInfo.RedirectStandardInput = true;
@@ -79,7 +85,6 @@ namespace CCTV_BlackBox_GUI
             baseProcess.StartInfo = startInfo;
             baseProcess.OutputDataReceived += proc_OutputDataReceived;
             baseProcess.EnableRaisingEvents = true;
-            //baseProcess.Exited += new EventHandler(BaseProcess_Exited);
             baseProcess.Exited += BaseProcess_Exited;
             try
             {
@@ -150,21 +155,21 @@ namespace CCTV_BlackBox_GUI
 
         private void InitTrayIcon()
         {
-            System.Windows.Forms.ContextMenu menu = new System.Windows.Forms.ContextMenu();    // Menu 객체
+            System.Windows.Forms.ContextMenu menu = new System.Windows.Forms.ContextMenu();
 
-            System.Windows.Forms.MenuItem item1 = new System.Windows.Forms.MenuItem();    // Menu 객체에 들어갈 각각의 menu
+            System.Windows.Forms.MenuItem item1 = new System.Windows.Forms.MenuItem();
             item1.Index = 0;
             item1.Text = "열기";
-            item1.Click += delegate (object click, EventArgs eClick)    // menu 의 클릭 이벤트 등록
+            item1.Click += delegate (object click, EventArgs eClick)
             {
                 this.Show();
                 this.WindowState = WindowState.Normal;
                 this.Visibility = Visibility.Visible;
             };
-            System.Windows.Forms.MenuItem item2 = new System.Windows.Forms.MenuItem();    // menu 객체에 들어갈 각 menu
+            System.Windows.Forms.MenuItem item2 = new System.Windows.Forms.MenuItem();
             item2.Index = 1;
             item2.Text = "프로그램 종료";
-            item2.Click += delegate (object click, EventArgs eClick)    // menu의 클릭 이벤트 등록
+            item2.Click += delegate (object click, EventArgs eClick)
             {
                 shutdownProcess = true;
                 notify.Dispose();
@@ -173,24 +178,22 @@ namespace CCTV_BlackBox_GUI
                 baseProcess.WaitForExit();
                 mutex.ReleaseMutex();
                 System.Windows.Application.Current.Shutdown();
-                //this.Close();
             };
 
 
-            menu.MenuItems.Add(item1);    // Menu 객체에 각각의 menu 등록
-            menu.MenuItems.Add(item2);    // Menu 객체에 각각의 menu 등록
+            menu.MenuItems.Add(item1);
+            menu.MenuItems.Add(item2);
 
-            //ni.Icon = new System.Drawing.Icon(new Uri("path"));    // 아이콘 등록 1번째 방법
-            notify.Icon = Properties.Resources.cctv;    // 아이콘 등록 2번째 방법
+            notify.Icon = Properties.Resources.cctv;
             notify.Visible = true;
-            notify.DoubleClick += delegate (object senders, EventArgs args)    // Tray icon의 더블 클릭 이벤트 등록
+            notify.DoubleClick += delegate (object senders, EventArgs args)
             {
                 this.Show();
                 this.WindowState = WindowState.Normal;
                 this.Visibility = Visibility.Visible;
             };
-            notify.ContextMenu = menu;    // Menu 객체 등록
-            notify.Text = "CCTV BlackBox";    // Tray icon 이름
+            notify.ContextMenu = menu;
+            notify.Text = "CCTV BlackBox";
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -234,7 +237,7 @@ namespace CCTV_BlackBox_GUI
 
             this.ShowOverlayAsync();
 
-            bool? dialogResult = helpWindow.ShowDialog(); // ShowDialog를 하면 mainwindow로 포커스를 옮길 수 없음.
+            bool? dialogResult = helpWindow.ShowDialog();
             switch (dialogResult)
             {
                 case true:
