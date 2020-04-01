@@ -189,7 +189,7 @@ bool imageProcessing(const WCHAR* filePathWC, bool maximum, bool minimum) {
 			});
 
 	if (setting->getDebug()) {
-		for (int i = 0; i < maxSize; i++) {
+		for (int i = 0; i < min(maxSize, nowCorner->size()); i++) {
 			int idx = nowCorner->at(i);
 			for (int y = -2; y <= 2; y++) {
 				for (int x = -2; x <= 2; x++) {
